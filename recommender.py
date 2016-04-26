@@ -39,6 +39,7 @@ def check_recommend_result(user_int, raw_user_movies, movies_name, user_int_to_i
     for recommendation in recommendations:
         if str(recommendation.product) in movies_name:
             print movies_name[str(recommendation.product)].encode('utf-8'), recommendation.rating
+
 def evaluate(sc, raw_user_movies, raw_hot_movies):
     movies_name = build_movies(raw_hot_movies)
     user_id_to_int = raw_user_movies.map(lambda line: line.split(',')[0]).distinct().zipWithUniqueId().collectAsMap()
@@ -69,6 +70,8 @@ def recommend(sc, raw_user_movies, raw_hot_movies):
     user_id_to_int = raw_user_movies.map(lambda line: line.split(',')[0]).distinct().zipWithUniqueId().collectAsMap()
     user_int_to_id = {v: k for k, v in user_id_to_int.iteritems()}
     ratings = build_ratings(raw_user_movies, user_id_to_int)
+    #model.save(sc, "model")
+    #model = MatrixFactorizationModel.load(sc, "model")
     model = ALS.train(ratings, 50, 10, 0.0001)
     def transform(record):
         user, recommendations = record[0], record[1]
@@ -82,9 +85,9 @@ def recommend(sc, raw_user_movies, raw_hot_movies):
             s = s[:len(s) - 1]
         return (user_int_to_id[user], s)
     all_recommendations = model.recommendProductsForUsers(10).map(transform)
-    for r in all_recommendations.take(20000):
+    for r in all_recommendations.take(10):
         print r[0], r[1]
-    #all_recommendations.saveAsTextFile("result.csv")
+    all_recommendations.saveAsTextFile("result.csv")
 def build_ratings(raw_user_movies, user_id_to_int):
     def transform(line):
         values = line.split(',')
